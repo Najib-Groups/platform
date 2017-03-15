@@ -18,6 +18,7 @@ func InitSystem() {
 	BaseRoutes.System.Handle("/ping", ApiHandler(getSystemPing)).Methods("GET")
 	BaseRoutes.ApiRoot.Handle("/config", ApiSessionRequired(getConfig)).Methods("GET")
 	BaseRoutes.ApiRoot.Handle("/config/reload", ApiSessionRequired(configReload)).Methods("POST")
+	BaseRoutes.ApiRoot.Handle("/audits", ApiSessionRequired(getAudits)).Methods("GET")
 	BaseRoutes.ApiRoot.Handle("/email/test", ApiSessionRequired(testEmail)).Methods("POST")
 	BaseRoutes.ApiRoot.Handle("/database/recycle", ApiSessionRequired(databaseRecycle)).Methods("POST")
 	BaseRoutes.ApiRoot.Handle("/caches/invalidate", ApiSessionRequired(invalidateCaches)).Methods("POST")
@@ -65,6 +66,22 @@ func configReload(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	ReturnStatusOK(w)
+}
+
+func getAudits(c *Context, w http.ResponseWriter, r *http.Request) {
+	if !app.SessionHasPermissionTo(c.Session, model.PERMISSION_MANAGE_SYSTEM) {
+		c.SetPermissionError(model.PERMISSION_MANAGE_SYSTEM)
+		return
+	}
+
+	audits, err := app.GetAuditsPage("", c.Params.Page, c.Params.PerPage)
+
+	if err != nil {
+		c.Err = err
+		return
+	}
+
+	w.Write([]byte(audits.ToJson()))
 }
 
 func databaseRecycle(c *Context, w http.ResponseWriter, r *http.Request) {
