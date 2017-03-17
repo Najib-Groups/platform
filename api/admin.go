@@ -356,11 +356,38 @@ func samlMetadata(c *Context, w http.ResponseWriter, r *http.Request) {
 func addCertificate(c *Context, w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(*utils.Cfg.FileSettings.MaxFileSize)
 	if err != nil {
+		l4g.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	m := r.MultipartForm
+
+	certificateFile := ""
+
+	if typeArray, ok := m.Value["type"]; !ok {
+		// need to set and add the error to localization
+		c.Err = model.NewLocAppError("addCertificate", "api.admin.add_certificate.no_file.app_error", nil, "")
+		c.Err.StatusCode = http.StatusBadRequest
+		return
+	} else {
+		switch certType, _ := strconv.Atoi(typeArray[0]); certType {
+		case model.SAML_IDP_CERTIFICATE:
+			certificateFile = model.SAML_SETTINGS_IDP_CERTIFICATE
+		case model.SAML_PRIVATE_KEY:
+			certificateFile = model.SAML_SETTING_SP_PRIVATE_KEY
+		case model.SAML_PUBLIC_CERT:
+			certificateFile = model.SAML_SETTING_SP_CERTIFICATE
+		}
+
+		if len(certificateFile) == 0 {
+			// need to set and add the error to localization
+			c.Err = model.NewLocAppError("addCertificate", "api.admin.add_certificate.no_file.app_error", nil, "")
+			c.Err.StatusCode = http.StatusBadRequest
+			return
+		}
+
+	}
 
 	fileArray, ok := m.File["certificate"]
 	if !ok {
@@ -377,7 +404,7 @@ func addCertificate(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	fileData := fileArray[0]
 
-	if err := app.WriteSamlFile(fileData); err != nil {
+	if err := app.WriteSamlFile(certificateFile, fileData); err != nil {
 		c.Err = err
 		return
 	}
@@ -387,7 +414,25 @@ func addCertificate(c *Context, w http.ResponseWriter, r *http.Request) {
 func removeCertificate(c *Context, w http.ResponseWriter, r *http.Request) {
 	props := model.MapFromJson(r.Body)
 
-	if err := app.RemoveSamlFile(props["filename"]); err != nil {
+	certificateFile := ""
+
+	switch certType, _ := strconv.Atoi(props["type"]); certType {
+	case model.SAML_IDP_CERTIFICATE:
+		certificateFile = model.SAML_SETTINGS_IDP_CERTIFICATE
+	case model.SAML_PRIVATE_KEY:
+		certificateFile = model.SAML_SETTING_SP_PRIVATE_KEY
+	case model.SAML_PUBLIC_CERT:
+		certificateFile = model.SAML_SETTING_SP_CERTIFICATE
+	}
+
+	if len(certificateFile) == 0 {
+		// need to set and add the error to localization
+		c.Err = model.NewLocAppError("addCertificate", "api.admin.add_certificate.no_file.app_error", nil, "")
+		c.Err.StatusCode = http.StatusBadRequest
+		return
+	}
+
+	if err := app.RemoveSamlFile(certificateFile); err != nil {
 		c.Err = err
 		return
 	}

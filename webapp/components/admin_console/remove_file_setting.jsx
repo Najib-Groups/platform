@@ -14,7 +14,6 @@ export default class RemoveFileSetting extends Setting {
             helpText: React.PropTypes.node,
             removeButtonText: React.PropTypes.node.isRequired,
             removingText: React.PropTypes.node,
-            fileName: React.PropTypes.string.isRequired,
             onSubmit: React.PropTypes.func.isRequired,
             disabled: React.PropTypes.bool
         };
@@ -42,9 +41,6 @@ export default class RemoveFileSetting extends Setting {
                 inputId={this.props.id}
             >
                 <div>
-                    <div className='help-text remove-filename'>
-                        {this.props.fileName}
-                    </div>
                     <button
                         className='btn btn-danger'
                         onClick={this.handleRemove}

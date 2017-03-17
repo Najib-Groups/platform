@@ -2274,31 +2274,61 @@ func (c *Client) GetCustomEmojiImageUrl(id string) string {
 // Uploads a x509 base64 Certificate or Private Key file to be used with SAML.
 // data byte array is required and needs to be a Multi-Part with 'certificate' as the field name
 // contentType is also required. Returns nil if succesful, otherwise returns an AppError
-func (c *Client) UploadCertificateFile(data []byte, contentType string) *AppError {
+func (c *Client) UploadCertificateFile(certificateType string, data []byte) *AppError {
 	url := c.ApiUrl + "/admin/add_certificate"
-	rq, _ := http.NewRequest("POST", url, bytes.NewReader(data))
-	rq.Header.Set("Content-Type", contentType)
+	certificateFile := ""
+
+	switch certType, _ := strconv.Atoi(certificateType); certType {
+	case SAML_IDP_CERTIFICATE:
+		certificateFile = SAML_SETTINGS_IDP_CERTIFICATE
+	case SAML_PRIVATE_KEY:
+		certificateFile = SAML_SETTING_SP_PRIVATE_KEY
+	case SAML_PUBLIC_CERT:
+		certificateFile = SAML_SETTING_SP_CERTIFICATE
+	}
+
+	c.clearExtraProperties()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	if part, err := writer.CreateFormFile("certificate", certificateFile); err != nil {
+		return NewLocAppError("UploadCertificateFile", "model.client.upload_saml_cert.app_error", nil, err.Error())
+	} else if _, err = io.Copy(part, bytes.NewBuffer(data)); err != nil {
+		return NewLocAppError("UploadCertificateFile", "model.client.upload_saml_cert.app_error", nil, err.Error())
+	}
+
+	if err := writer.WriteField("type", certificateType); err != nil {
+		return NewLocAppError("UploadCertificateFile", "model.client.upload_saml_cert.app_error", nil, err.Error())
+	}
+
+	if err := writer.Close(); err != nil {
+		return NewLocAppError("UploadCertificateFile", "model.client.upload_saml_cert.app_error", nil, err.Error())
+	}
+
+	rq, _ := http.NewRequest("POST", url, body)
+	rq.Header.Set("Content-Type", writer.FormDataContentType())
 	rq.Close = true
 
 	if len(c.AuthToken) > 0 {
 		rq.Header.Set(HEADER_AUTH, "BEARER "+c.AuthToken)
 	}
 
-	if rp, err := c.HttpClient.Do(rq); err != nil {
-		return NewLocAppError(url, "model.client.connecting.app_error", nil, err.Error())
-	} else if rp.StatusCode >= 300 {
-		return AppErrorFromJson(rp.Body)
+	if r, err := c.HttpClient.Do(rq); err != nil {
+		return NewLocAppError("UploadCertificateFile", "model.client.connecting.app_error", nil, err.Error())
+	} else if r.StatusCode >= 300 {
+		return AppErrorFromJson(r.Body)
 	} else {
-		defer closeBody(rp)
-		c.fillInExtraProperties(rp)
+		defer closeBody(r)
+		c.fillInExtraProperties(r)
 		return nil
 	}
 }
 
 // Removes a x509 base64 Certificate or Private Key file used with SAML.
 // filename is required. Returns nil if successful, otherwise returns an AppError
-func (c *Client) RemoveCertificateFile(filename string) *AppError {
-	if r, err := c.DoApiPost("/admin/remove_certificate", MapToJson(map[string]string{"filename": filename})); err != nil {
+func (c *Client) RemoveCertificateFile(certificateType string) *AppError {
+	if r, err := c.DoApiPost("/admin/remove_certificate", MapToJson(map[string]string{"type": certificateType})); err != nil {
 		return err
 	} else {
 		defer closeBody(r)

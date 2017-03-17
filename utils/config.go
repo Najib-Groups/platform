@@ -190,6 +190,62 @@ func LoadConfig(fileName string) {
 		panic(T(err.Id))
 	}
 
+	// In case SAML is already enabled we need to rename the files in the fs and the config file
+	if samlI := einterfaces.GetSamlInterface(); samlI != nil {
+		bytes, err := ioutil.ReadFile(fileName)
+		jsonMap := make(map[string]interface{})
+		err = json.Unmarshal(bytes, &jsonMap)
+		if err != nil {
+			panic(err)
+		}
+
+		settings := jsonMap["SamlSettings"].(map[string]interface{})
+		var idpCertificateFile string
+		var privateKeyFile string
+		var publicCertificateFile string
+
+		if settings != nil {
+			if settings["IdpCertificateFile"] != nil {
+				idpCertificateFile = settings["IdpCertificateFile"].(string)
+			}
+
+			if settings["PrivateKeyFile"] != nil {
+				privateKeyFile = settings["PrivateKeyFile"].(string)
+			}
+
+			if settings["PublicCertificateFile"] != nil {
+				publicCertificateFile = settings["PublicCertificateFile"].(string)
+			}
+
+			if len(idpCertificateFile) > 0 &&
+				idpCertificateFile != model.SAML_SETTINGS_IDP_CERTIFICATE {
+				if err := os.Rename(
+					FindDir("config")+idpCertificateFile,
+					FindDir("config")+model.SAML_SETTINGS_IDP_CERTIFICATE); err != nil {
+					l4g.Warn("Could not rename IDP certificate file")
+				}
+			}
+
+			if len(privateKeyFile) > 0 &&
+				privateKeyFile != model.SAML_SETTING_SP_PRIVATE_KEY {
+				if err := os.Rename(
+					FindDir("config")+privateKeyFile,
+					FindDir("config")+model.SAML_SETTING_SP_PRIVATE_KEY); err != nil {
+					l4g.Warn("Could not rename SP private key file")
+				}
+			}
+
+			if len(publicCertificateFile) > 0 &&
+				publicCertificateFile != model.SAML_SETTING_SP_CERTIFICATE {
+				if err := os.Rename(
+					FindDir("config")+publicCertificateFile,
+					FindDir("config")+model.SAML_SETTING_SP_CERTIFICATE); err != nil {
+					l4g.Warn("Could not rename SP Public certificate file")
+				}
+			}
+		}
+	}
+
 	if needSave {
 		if err := SaveConfig(fileName, &config); err != nil {
 			l4g.Warn(T(err.Id))

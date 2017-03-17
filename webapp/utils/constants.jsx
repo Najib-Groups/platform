@@ -251,6 +251,15 @@ export const PostTypes = {
     EPHEMERAL: 'system_ephemeral'
 };
 
+export const SamlCertificateTypes = {
+    SAML_IDP_CERTIFICATE_TYPE: '1',
+    SAML_PRIVATE_KEY_TYPE: '2',
+    SAML_PUBLIC_CERT_TYPE: '3',
+    SAML_IDP_CERTIFICATE_NAME: 'idp.crt',
+    SAML_PRIVATE_KEY_NAME: 'sp.key',
+    SAML_PUBLIC_CERT_NAME: 'sp.crt'
+};
+
 export const Constants = {
     Preferences,
     SocketEvents,
@@ -260,6 +269,7 @@ export const Constants = {
     UserSearchOptions,
     TutorialSteps,
     PostTypes,
+    SamlCertificateTypes,
     IGNORE_POST_TYPES: [PostTypes.JOIN_LEAVE, PostTypes.JOIN_CHANNEL, PostTypes.LEAVE_CHANNEL, PostTypes.REMOVE_FROM_CHANNEL, PostTypes.ADD_TO_CHANNEL, PostTypes.ADD_REMOVE],
 
     PayloadSources: keyMirror({

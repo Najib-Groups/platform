@@ -2160,21 +2160,22 @@ export default class Client {
         return `${this.getEmojiRoute()}/${id}`;
     }
 
-    uploadCertificateFile(file, success, error) {
+    uploadCertificateFile(type, file, success, error) {
         request.
         post(`${this.getAdminRoute()}/add_certificate`).
         set(this.defaultHeaders).
         accept('application/json').
         attach('certificate', file, file.name).
+        field({type}).
         end(this.handleResponse.bind(this, 'uploadCertificateFile', success, error));
     }
 
-    removeCertificateFile(filename, success, error) {
+    removeCertificateFile(type, success, error) {
         request.
             post(`${this.getAdminRoute()}/remove_certificate`).
             set(this.defaultHeaders).
             accept('application/json').
-            send({filename}).
+            send({type}).
             end(this.handleResponse.bind(this, 'removeCertificateFile', success, error));
     }
 

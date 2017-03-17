@@ -12,6 +12,7 @@ import RemoveFileSetting from './remove_file_setting.jsx';
 import {FormattedMessage, FormattedHTMLMessage} from 'react-intl';
 import SettingsGroup from './settings_group.jsx';
 
+import {SamlCertificateTypes} from 'utils/constants.jsx';
 import * as Utils from 'utils/utils.jsx';
 
 import {samlCertificateStatus, uploadCertificateFile, removeCertificateFile} from 'actions/admin_actions.jsx';
@@ -20,11 +21,25 @@ export default class SamlSettings extends AdminSettings {
     constructor(props) {
         super(props);
 
+        this.getCertificateTypeAndName = this.getCertificateTypeAndName.bind(this);
         this.getConfigFromState = this.getConfigFromState.bind(this);
 
         this.renderSettings = this.renderSettings.bind(this);
         this.uploadCertificate = this.uploadCertificate.bind(this);
         this.removeCertificate = this.removeCertificate.bind(this);
+    }
+
+    getCertificateTypeAndName(id) {
+        switch (id) {
+        case 'idpCertificateFile':
+            return {type: SamlCertificateTypes.SAML_IDP_CERTIFICATE_TYPE, name: SamlCertificateTypes.SAML_IDP_CERTIFICATE_NAME};
+        case 'privateKeyFile':
+            return {type: SamlCertificateTypes.SAML_PRIVATE_KEY_TYPE, name: SamlCertificateTypes.SAML_PRIVATE_KEY_NAME};
+        case 'publicCertificateFile':
+            return {type: SamlCertificateTypes.SAML_PUBLIC_CERT_TYPE, name: SamlCertificateTypes.SAML_PUBLIC_CERT_NAME};
+        default:
+            return null;
+        }
     }
 
     getConfigFromState(config) {
@@ -94,38 +109,45 @@ export default class SamlSettings extends AdminSettings {
     }
 
     uploadCertificate(id, file, callback) {
-        uploadCertificateFile(
-            file,
-            () => {
-                const fileName = file.name;
-                this.handleChange(id, fileName);
-                this.setState({[id]: fileName, [`${id}Error`]: null});
-                if (callback && typeof callback === 'function') {
-                    callback();
+        const cert = this.getCertificateTypeAndName(id);
+        if (cert) {
+            uploadCertificateFile(
+                cert.type,
+                file,
+                () => {
+                    const fileName = cert.name;
+                    this.handleChange(id, fileName);
+                    this.setState({[id]: fileName, [`${id}Error`]: null});
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                },
+                (error) => {
+                    if (callback && typeof callback === 'function') {
+                        callback(error.message);
+                    }
                 }
-            },
-            (error) => {
-                if (callback && typeof callback === 'function') {
-                    callback(error.message);
-                }
-            }
-        );
+            );
+        }
     }
 
     removeCertificate(id, callback) {
-        removeCertificateFile(
-            this.state[id],
-            () => {
-                this.handleChange(id, '');
-                this.setState({[id]: null, [`${id}Error`]: null});
-            },
-            (error) => {
-                if (callback && typeof callback === 'function') {
-                    callback();
+        const cert = this.getCertificateTypeAndName(id);
+        if (cert) {
+            removeCertificateFile(
+                cert.type,
+                () => {
+                    this.handleChange(id, '');
+                    this.setState({[id]: null, [`${id}Error`]: null});
+                },
+                (error) => {
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                    this.setState({[id]: null, [`${id}Error`]: error.message});
                 }
-                this.setState({[id]: null, [`${id}Error`]: error.message});
-            }
-        );
+            );
+        }
     }
 
     renderTitle() {
@@ -167,7 +189,6 @@ export default class SamlSettings extends AdminSettings {
                     }
                     removeButtonText={Utils.localizeMessage('admin.saml.remove.idp_certificate', 'Remove Identity Provider Certificate')}
                     removingText={Utils.localizeMessage('admin.saml.removing.certificate', 'Removing Certificate...')}
-                    fileName={this.state.idpCertificateFile}
                     onSubmit={this.removeCertificate}
                     disabled={!this.state.enable}
                 />

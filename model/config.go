@@ -91,6 +91,9 @@ const (
 	LDAP_SETTINGS_DEFAULT_POSITION_ATTRIBUTE   = ""
 	LDAP_SETTINGS_DEFAULT_LOGIN_FIELD_NAME     = ""
 
+	SAML_SETTINGS_IDP_CERTIFICATE              = "idp.crt"
+	SAML_SETTING_SP_CERTIFICATE                = "sp.crt"
+	SAML_SETTING_SP_PRIVATE_KEY                = "sp.key"
 	SAML_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE = ""
 	SAML_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE  = ""
 	SAML_SETTINGS_DEFAULT_EMAIL_ATTRIBUTE      = ""
@@ -356,10 +359,6 @@ type SamlSettings struct {
 	IdpDescriptorUrl            *string
 	AssertionConsumerServiceURL *string
 
-	IdpCertificateFile    *string
-	PublicCertificateFile *string
-	PrivateKeyFile        *string
-
 	// User Mapping
 	FirstNameAttribute *string
 	LastNameAttribute  *string
@@ -453,694 +452,22 @@ func (o *Config) SetDefaults() {
 		o.SqlSettings.AtRestEncryptKey = NewRandomString(32)
 	}
 
-	if o.FileSettings.AmazonS3Endpoint == "" {
-		// Defaults to "s3.amazonaws.com"
-		o.FileSettings.AmazonS3Endpoint = "s3.amazonaws.com"
-	}
-
-	if o.FileSettings.AmazonS3Region == "" {
-		// Defaults to "us-east-1" region.
-		o.FileSettings.AmazonS3Region = "us-east-1"
-	}
-
-	if o.FileSettings.AmazonS3SSL == nil {
-		o.FileSettings.AmazonS3SSL = new(bool)
-		*o.FileSettings.AmazonS3SSL = true // Secure by default.
-	}
-
-	if o.FileSettings.MaxFileSize == nil {
-		o.FileSettings.MaxFileSize = new(int64)
-		*o.FileSettings.MaxFileSize = 52428800 // 50 MB
-	}
-
-	if len(*o.FileSettings.PublicLinkSalt) == 0 {
-		o.FileSettings.PublicLinkSalt = new(string)
-		*o.FileSettings.PublicLinkSalt = NewRandomString(32)
-	}
-
-	if o.FileSettings.InitialFont == "" {
-		// Defaults to "luximbi.ttf"
-		o.FileSettings.InitialFont = "luximbi.ttf"
-	}
-
-	if len(o.EmailSettings.InviteSalt) == 0 {
-		o.EmailSettings.InviteSalt = NewRandomString(32)
-	}
-
-	if len(o.EmailSettings.PasswordResetSalt) == 0 {
-		o.EmailSettings.PasswordResetSalt = NewRandomString(32)
-	}
-
-	if o.ServiceSettings.SiteURL == nil {
-		o.ServiceSettings.SiteURL = new(string)
-		*o.ServiceSettings.SiteURL = SERVICE_SETTINGS_DEFAULT_SITE_URL
-	}
-
-	if o.ServiceSettings.EnableLinkPreviews == nil {
-		o.ServiceSettings.EnableLinkPreviews = new(bool)
-		*o.ServiceSettings.EnableLinkPreviews = false
-	}
-
-	if o.ServiceSettings.EnableDeveloper == nil {
-		o.ServiceSettings.EnableDeveloper = new(bool)
-		*o.ServiceSettings.EnableDeveloper = false
-	}
-
-	if o.ServiceSettings.EnableSecurityFixAlert == nil {
-		o.ServiceSettings.EnableSecurityFixAlert = new(bool)
-		*o.ServiceSettings.EnableSecurityFixAlert = true
-	}
-
-	if o.ServiceSettings.EnableInsecureOutgoingConnections == nil {
-		o.ServiceSettings.EnableInsecureOutgoingConnections = new(bool)
-		*o.ServiceSettings.EnableInsecureOutgoingConnections = false
-	}
-
-	if o.ServiceSettings.EnableMultifactorAuthentication == nil {
-		o.ServiceSettings.EnableMultifactorAuthentication = new(bool)
-		*o.ServiceSettings.EnableMultifactorAuthentication = false
-	}
-
-	if o.ServiceSettings.EnforceMultifactorAuthentication == nil {
-		o.ServiceSettings.EnforceMultifactorAuthentication = new(bool)
-		*o.ServiceSettings.EnforceMultifactorAuthentication = false
-	}
-
-	if o.PasswordSettings.MinimumLength == nil {
-		o.PasswordSettings.MinimumLength = new(int)
-		*o.PasswordSettings.MinimumLength = PASSWORD_MINIMUM_LENGTH
-	}
-
-	if o.PasswordSettings.Lowercase == nil {
-		o.PasswordSettings.Lowercase = new(bool)
-		*o.PasswordSettings.Lowercase = false
-	}
-
-	if o.PasswordSettings.Number == nil {
-		o.PasswordSettings.Number = new(bool)
-		*o.PasswordSettings.Number = false
-	}
-
-	if o.PasswordSettings.Uppercase == nil {
-		o.PasswordSettings.Uppercase = new(bool)
-		*o.PasswordSettings.Uppercase = false
-	}
-
-	if o.PasswordSettings.Symbol == nil {
-		o.PasswordSettings.Symbol = new(bool)
-		*o.PasswordSettings.Symbol = false
-	}
-
-	if o.TeamSettings.EnableCustomBrand == nil {
-		o.TeamSettings.EnableCustomBrand = new(bool)
-		*o.TeamSettings.EnableCustomBrand = false
-	}
-
-	if o.TeamSettings.CustomBrandText == nil {
-		o.TeamSettings.CustomBrandText = new(string)
-		*o.TeamSettings.CustomBrandText = TEAM_SETTINGS_DEFAULT_CUSTOM_BRAND_TEXT
-	}
-
-	if o.TeamSettings.CustomDescriptionText == nil {
-		o.TeamSettings.CustomDescriptionText = new(string)
-		*o.TeamSettings.CustomDescriptionText = TEAM_SETTINGS_DEFAULT_CUSTOM_DESCRIPTION_TEXT
-	}
-
-	if o.TeamSettings.EnableOpenServer == nil {
-		o.TeamSettings.EnableOpenServer = new(bool)
-		*o.TeamSettings.EnableOpenServer = false
-	}
-
-	if o.TeamSettings.RestrictDirectMessage == nil {
-		o.TeamSettings.RestrictDirectMessage = new(string)
-		*o.TeamSettings.RestrictDirectMessage = DIRECT_MESSAGE_ANY
-	}
-
-	if o.TeamSettings.RestrictTeamInvite == nil {
-		o.TeamSettings.RestrictTeamInvite = new(string)
-		*o.TeamSettings.RestrictTeamInvite = PERMISSIONS_ALL
-	}
-
-	if o.TeamSettings.RestrictPublicChannelManagement == nil {
-		o.TeamSettings.RestrictPublicChannelManagement = new(string)
-		*o.TeamSettings.RestrictPublicChannelManagement = PERMISSIONS_ALL
-	}
-
-	if o.TeamSettings.RestrictPrivateChannelManagement == nil {
-		o.TeamSettings.RestrictPrivateChannelManagement = new(string)
-		*o.TeamSettings.RestrictPrivateChannelManagement = PERMISSIONS_ALL
-	}
-
-	if o.TeamSettings.RestrictPublicChannelCreation == nil {
-		o.TeamSettings.RestrictPublicChannelCreation = new(string)
-		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPublicChannelCreation = *o.TeamSettings.RestrictPublicChannelManagement
-	}
-
-	if o.TeamSettings.RestrictPrivateChannelCreation == nil {
-		o.TeamSettings.RestrictPrivateChannelCreation = new(string)
-		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPrivateChannelCreation = *o.TeamSettings.RestrictPrivateChannelManagement
-	}
-
-	if o.TeamSettings.RestrictPublicChannelDeletion == nil {
-		o.TeamSettings.RestrictPublicChannelDeletion = new(string)
-		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPublicChannelDeletion = *o.TeamSettings.RestrictPublicChannelManagement
-	}
-
-	if o.TeamSettings.RestrictPrivateChannelDeletion == nil {
-		o.TeamSettings.RestrictPrivateChannelDeletion = new(string)
-		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
-		*o.TeamSettings.RestrictPrivateChannelDeletion = *o.TeamSettings.RestrictPrivateChannelManagement
-	}
-
-	if o.TeamSettings.UserStatusAwayTimeout == nil {
-		o.TeamSettings.UserStatusAwayTimeout = new(int64)
-		*o.TeamSettings.UserStatusAwayTimeout = TEAM_SETTINGS_DEFAULT_USER_STATUS_AWAY_TIMEOUT
-	}
-
-	if o.TeamSettings.MaxChannelsPerTeam == nil {
-		o.TeamSettings.MaxChannelsPerTeam = new(int64)
-		*o.TeamSettings.MaxChannelsPerTeam = 2000
-	}
-
-	if o.TeamSettings.MaxNotificationsPerChannel == nil {
-		o.TeamSettings.MaxNotificationsPerChannel = new(int64)
-		*o.TeamSettings.MaxNotificationsPerChannel = 1000
-	}
-
-	if o.EmailSettings.EnableSignInWithEmail == nil {
-		o.EmailSettings.EnableSignInWithEmail = new(bool)
-
-		if o.EmailSettings.EnableSignUpWithEmail == true {
-			*o.EmailSettings.EnableSignInWithEmail = true
-		} else {
-			*o.EmailSettings.EnableSignInWithEmail = false
-		}
-	}
-
-	if o.EmailSettings.EnableSignInWithUsername == nil {
-		o.EmailSettings.EnableSignInWithUsername = new(bool)
-		*o.EmailSettings.EnableSignInWithUsername = false
-	}
-
-	if o.EmailSettings.SendPushNotifications == nil {
-		o.EmailSettings.SendPushNotifications = new(bool)
-		*o.EmailSettings.SendPushNotifications = false
-	}
-
-	if o.EmailSettings.PushNotificationServer == nil {
-		o.EmailSettings.PushNotificationServer = new(string)
-		*o.EmailSettings.PushNotificationServer = ""
-	}
-
-	if o.EmailSettings.PushNotificationContents == nil {
-		o.EmailSettings.PushNotificationContents = new(string)
-		*o.EmailSettings.PushNotificationContents = GENERIC_NOTIFICATION
-	}
-
-	if o.EmailSettings.FeedbackOrganization == nil {
-		o.EmailSettings.FeedbackOrganization = new(string)
-		*o.EmailSettings.FeedbackOrganization = EMAIL_SETTINGS_DEFAULT_FEEDBACK_ORGANIZATION
-	}
-
-	if o.EmailSettings.EnableEmailBatching == nil {
-		o.EmailSettings.EnableEmailBatching = new(bool)
-		*o.EmailSettings.EnableEmailBatching = false
-	}
-
-	if o.EmailSettings.EmailBatchingBufferSize == nil {
-		o.EmailSettings.EmailBatchingBufferSize = new(int)
-		*o.EmailSettings.EmailBatchingBufferSize = EMAIL_BATCHING_BUFFER_SIZE
-	}
-
-	if o.EmailSettings.EmailBatchingInterval == nil {
-		o.EmailSettings.EmailBatchingInterval = new(int)
-		*o.EmailSettings.EmailBatchingInterval = EMAIL_BATCHING_INTERVAL
-	}
-
-	if !IsSafeLink(o.SupportSettings.TermsOfServiceLink) {
-		o.SupportSettings.TermsOfServiceLink = nil
-	}
-
-	if o.SupportSettings.TermsOfServiceLink == nil {
-		o.SupportSettings.TermsOfServiceLink = new(string)
-		*o.SupportSettings.TermsOfServiceLink = SUPPORT_SETTINGS_DEFAULT_TERMS_OF_SERVICE_LINK
-	}
-
-	if !IsSafeLink(o.SupportSettings.PrivacyPolicyLink) {
-		o.SupportSettings.PrivacyPolicyLink = nil
-	}
-
-	if o.SupportSettings.PrivacyPolicyLink == nil {
-		o.SupportSettings.PrivacyPolicyLink = new(string)
-		*o.SupportSettings.PrivacyPolicyLink = SUPPORT_SETTINGS_DEFAULT_PRIVACY_POLICY_LINK
-	}
-
-	if !IsSafeLink(o.SupportSettings.AboutLink) {
-		o.SupportSettings.AboutLink = nil
-	}
-
-	if o.SupportSettings.AboutLink == nil {
-		o.SupportSettings.AboutLink = new(string)
-		*o.SupportSettings.AboutLink = SUPPORT_SETTINGS_DEFAULT_ABOUT_LINK
-	}
-
-	if !IsSafeLink(o.SupportSettings.HelpLink) {
-		o.SupportSettings.HelpLink = nil
-	}
-
-	if o.SupportSettings.HelpLink == nil {
-		o.SupportSettings.HelpLink = new(string)
-		*o.SupportSettings.HelpLink = SUPPORT_SETTINGS_DEFAULT_HELP_LINK
-	}
-
-	if !IsSafeLink(o.SupportSettings.ReportAProblemLink) {
-		o.SupportSettings.ReportAProblemLink = nil
-	}
-
-	if o.SupportSettings.ReportAProblemLink == nil {
-		o.SupportSettings.ReportAProblemLink = new(string)
-		*o.SupportSettings.ReportAProblemLink = SUPPORT_SETTINGS_DEFAULT_REPORT_A_PROBLEM_LINK
-	}
-
-	if o.SupportSettings.SupportEmail == nil {
-		o.SupportSettings.SupportEmail = new(string)
-		*o.SupportSettings.SupportEmail = SUPPORT_SETTINGS_DEFAULT_SUPPORT_EMAIL
-	}
-
-	if o.LdapSettings.Enable == nil {
-		o.LdapSettings.Enable = new(bool)
-		*o.LdapSettings.Enable = false
-	}
-
-	if o.LdapSettings.LdapServer == nil {
-		o.LdapSettings.LdapServer = new(string)
-		*o.LdapSettings.LdapServer = ""
-	}
-
-	if o.LdapSettings.LdapPort == nil {
-		o.LdapSettings.LdapPort = new(int)
-		*o.LdapSettings.LdapPort = 389
-	}
-
-	if o.LdapSettings.ConnectionSecurity == nil {
-		o.LdapSettings.ConnectionSecurity = new(string)
-		*o.LdapSettings.ConnectionSecurity = ""
-	}
-
-	if o.LdapSettings.BaseDN == nil {
-		o.LdapSettings.BaseDN = new(string)
-		*o.LdapSettings.BaseDN = ""
-	}
-
-	if o.LdapSettings.BindUsername == nil {
-		o.LdapSettings.BindUsername = new(string)
-		*o.LdapSettings.BindUsername = ""
-	}
-
-	if o.LdapSettings.BindPassword == nil {
-		o.LdapSettings.BindPassword = new(string)
-		*o.LdapSettings.BindPassword = ""
-	}
-
-	if o.LdapSettings.UserFilter == nil {
-		o.LdapSettings.UserFilter = new(string)
-		*o.LdapSettings.UserFilter = ""
-	}
-
-	if o.LdapSettings.FirstNameAttribute == nil {
-		o.LdapSettings.FirstNameAttribute = new(string)
-		*o.LdapSettings.FirstNameAttribute = LDAP_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE
-	}
-
-	if o.LdapSettings.LastNameAttribute == nil {
-		o.LdapSettings.LastNameAttribute = new(string)
-		*o.LdapSettings.LastNameAttribute = LDAP_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE
-	}
-
-	if o.LdapSettings.EmailAttribute == nil {
-		o.LdapSettings.EmailAttribute = new(string)
-		*o.LdapSettings.EmailAttribute = LDAP_SETTINGS_DEFAULT_EMAIL_ATTRIBUTE
-	}
-
-	if o.LdapSettings.UsernameAttribute == nil {
-		o.LdapSettings.UsernameAttribute = new(string)
-		*o.LdapSettings.UsernameAttribute = LDAP_SETTINGS_DEFAULT_USERNAME_ATTRIBUTE
-	}
-
-	if o.LdapSettings.NicknameAttribute == nil {
-		o.LdapSettings.NicknameAttribute = new(string)
-		*o.LdapSettings.NicknameAttribute = LDAP_SETTINGS_DEFAULT_NICKNAME_ATTRIBUTE
-	}
-
-	if o.LdapSettings.IdAttribute == nil {
-		o.LdapSettings.IdAttribute = new(string)
-		*o.LdapSettings.IdAttribute = LDAP_SETTINGS_DEFAULT_ID_ATTRIBUTE
-	}
-
-	if o.LdapSettings.PositionAttribute == nil {
-		o.LdapSettings.PositionAttribute = new(string)
-		*o.LdapSettings.PositionAttribute = LDAP_SETTINGS_DEFAULT_POSITION_ATTRIBUTE
-	}
-
-	if o.LdapSettings.SyncIntervalMinutes == nil {
-		o.LdapSettings.SyncIntervalMinutes = new(int)
-		*o.LdapSettings.SyncIntervalMinutes = 60
-	}
-
-	if o.LdapSettings.SkipCertificateVerification == nil {
-		o.LdapSettings.SkipCertificateVerification = new(bool)
-		*o.LdapSettings.SkipCertificateVerification = false
-	}
-
-	if o.LdapSettings.QueryTimeout == nil {
-		o.LdapSettings.QueryTimeout = new(int)
-		*o.LdapSettings.QueryTimeout = 60
-	}
-
-	if o.LdapSettings.MaxPageSize == nil {
-		o.LdapSettings.MaxPageSize = new(int)
-		*o.LdapSettings.MaxPageSize = 0
-	}
-
-	if o.LdapSettings.LoginFieldName == nil {
-		o.LdapSettings.LoginFieldName = new(string)
-		*o.LdapSettings.LoginFieldName = LDAP_SETTINGS_DEFAULT_LOGIN_FIELD_NAME
-	}
-
-	if o.ServiceSettings.SessionLengthWebInDays == nil {
-		o.ServiceSettings.SessionLengthWebInDays = new(int)
-		*o.ServiceSettings.SessionLengthWebInDays = 30
-	}
-
-	if o.ServiceSettings.SessionLengthMobileInDays == nil {
-		o.ServiceSettings.SessionLengthMobileInDays = new(int)
-		*o.ServiceSettings.SessionLengthMobileInDays = 30
-	}
-
-	if o.ServiceSettings.SessionLengthSSOInDays == nil {
-		o.ServiceSettings.SessionLengthSSOInDays = new(int)
-		*o.ServiceSettings.SessionLengthSSOInDays = 30
-	}
-
-	if o.ServiceSettings.SessionCacheInMinutes == nil {
-		o.ServiceSettings.SessionCacheInMinutes = new(int)
-		*o.ServiceSettings.SessionCacheInMinutes = 10
-	}
-
-	if o.ServiceSettings.EnableCommands == nil {
-		o.ServiceSettings.EnableCommands = new(bool)
-		*o.ServiceSettings.EnableCommands = false
-	}
-
-	if o.ServiceSettings.EnableOnlyAdminIntegrations == nil {
-		o.ServiceSettings.EnableOnlyAdminIntegrations = new(bool)
-		*o.ServiceSettings.EnableOnlyAdminIntegrations = true
-	}
-
-	if o.ServiceSettings.WebsocketPort == nil {
-		o.ServiceSettings.WebsocketPort = new(int)
-		*o.ServiceSettings.WebsocketPort = 80
-	}
-
-	if o.ServiceSettings.WebsocketSecurePort == nil {
-		o.ServiceSettings.WebsocketSecurePort = new(int)
-		*o.ServiceSettings.WebsocketSecurePort = 443
-	}
-
-	if o.ServiceSettings.AllowCorsFrom == nil {
-		o.ServiceSettings.AllowCorsFrom = new(string)
-		*o.ServiceSettings.AllowCorsFrom = SERVICE_SETTINGS_DEFAULT_ALLOW_CORS_FROM
-	}
-
-	if o.ServiceSettings.WebserverMode == nil {
-		o.ServiceSettings.WebserverMode = new(string)
-		*o.ServiceSettings.WebserverMode = "gzip"
-	} else if *o.ServiceSettings.WebserverMode == "regular" {
-		*o.ServiceSettings.WebserverMode = "gzip"
-	}
-
-	if o.ServiceSettings.EnableCustomEmoji == nil {
-		o.ServiceSettings.EnableCustomEmoji = new(bool)
-		*o.ServiceSettings.EnableCustomEmoji = true
-	}
-
-	if o.ServiceSettings.RestrictCustomEmojiCreation == nil {
-		o.ServiceSettings.RestrictCustomEmojiCreation = new(string)
-		*o.ServiceSettings.RestrictCustomEmojiCreation = RESTRICT_EMOJI_CREATION_ALL
-	}
-
-	if o.ServiceSettings.RestrictPostDelete == nil {
-		o.ServiceSettings.RestrictPostDelete = new(string)
-		*o.ServiceSettings.RestrictPostDelete = PERMISSIONS_DELETE_POST_ALL
-	}
-
-	if o.ServiceSettings.AllowEditPost == nil {
-		o.ServiceSettings.AllowEditPost = new(string)
-		*o.ServiceSettings.AllowEditPost = ALLOW_EDIT_POST_ALWAYS
-	}
-
-	if o.ServiceSettings.PostEditTimeLimit == nil {
-		o.ServiceSettings.PostEditTimeLimit = new(int)
-		*o.ServiceSettings.PostEditTimeLimit = 300
-	}
-
-	if o.ClusterSettings.InterNodeListenAddress == nil {
-		o.ClusterSettings.InterNodeListenAddress = new(string)
-		*o.ClusterSettings.InterNodeListenAddress = ":8075"
-	}
-
-	if o.ClusterSettings.Enable == nil {
-		o.ClusterSettings.Enable = new(bool)
-		*o.ClusterSettings.Enable = false
-	}
-
-	if o.ClusterSettings.InterNodeUrls == nil {
-		o.ClusterSettings.InterNodeUrls = []string{}
-	}
-
-	if o.MetricsSettings.ListenAddress == nil {
-		o.MetricsSettings.ListenAddress = new(string)
-		*o.MetricsSettings.ListenAddress = ":8067"
-	}
-
-	if o.MetricsSettings.Enable == nil {
-		o.MetricsSettings.Enable = new(bool)
-		*o.MetricsSettings.Enable = false
-	}
-
-	if o.AnalyticsSettings.MaxUsersForStatistics == nil {
-		o.AnalyticsSettings.MaxUsersForStatistics = new(int)
-		*o.AnalyticsSettings.MaxUsersForStatistics = ANALYTICS_SETTINGS_DEFAULT_MAX_USERS_FOR_STATISTICS
-	}
-
-	if o.ComplianceSettings.Enable == nil {
-		o.ComplianceSettings.Enable = new(bool)
-		*o.ComplianceSettings.Enable = false
-	}
-
-	if o.ComplianceSettings.Directory == nil {
-		o.ComplianceSettings.Directory = new(string)
-		*o.ComplianceSettings.Directory = "./data/"
-	}
-
-	if o.ComplianceSettings.EnableDaily == nil {
-		o.ComplianceSettings.EnableDaily = new(bool)
-		*o.ComplianceSettings.EnableDaily = false
-	}
-
-	if o.LocalizationSettings.DefaultServerLocale == nil {
-		o.LocalizationSettings.DefaultServerLocale = new(string)
-		*o.LocalizationSettings.DefaultServerLocale = DEFAULT_LOCALE
-	}
-
-	if o.LocalizationSettings.DefaultClientLocale == nil {
-		o.LocalizationSettings.DefaultClientLocale = new(string)
-		*o.LocalizationSettings.DefaultClientLocale = DEFAULT_LOCALE
-	}
-
-	if o.LocalizationSettings.AvailableLocales == nil {
-		o.LocalizationSettings.AvailableLocales = new(string)
-		*o.LocalizationSettings.AvailableLocales = ""
-	}
-
-	if o.LogSettings.EnableDiagnostics == nil {
-		o.LogSettings.EnableDiagnostics = new(bool)
-		*o.LogSettings.EnableDiagnostics = true
-	}
-
-	if o.SamlSettings.Enable == nil {
-		o.SamlSettings.Enable = new(bool)
-		*o.SamlSettings.Enable = false
-	}
-
-	if o.SamlSettings.Verify == nil {
-		o.SamlSettings.Verify = new(bool)
-		*o.SamlSettings.Verify = false
-	}
-
-	if o.SamlSettings.Encrypt == nil {
-		o.SamlSettings.Encrypt = new(bool)
-		*o.SamlSettings.Encrypt = false
-	}
-
-	if o.SamlSettings.IdpUrl == nil {
-		o.SamlSettings.IdpUrl = new(string)
-		*o.SamlSettings.IdpUrl = ""
-	}
-
-	if o.SamlSettings.IdpDescriptorUrl == nil {
-		o.SamlSettings.IdpDescriptorUrl = new(string)
-		*o.SamlSettings.IdpDescriptorUrl = ""
-	}
-
-	if o.SamlSettings.IdpCertificateFile == nil {
-		o.SamlSettings.IdpCertificateFile = new(string)
-		*o.SamlSettings.IdpCertificateFile = ""
-	}
-
-	if o.SamlSettings.PublicCertificateFile == nil {
-		o.SamlSettings.PublicCertificateFile = new(string)
-		*o.SamlSettings.PublicCertificateFile = ""
-	}
-
-	if o.SamlSettings.PrivateKeyFile == nil {
-		o.SamlSettings.PrivateKeyFile = new(string)
-		*o.SamlSettings.PrivateKeyFile = ""
-	}
-
-	if o.SamlSettings.AssertionConsumerServiceURL == nil {
-		o.SamlSettings.AssertionConsumerServiceURL = new(string)
-		*o.SamlSettings.AssertionConsumerServiceURL = ""
-	}
-
-	if o.SamlSettings.LoginButtonText == nil || *o.SamlSettings.LoginButtonText == "" {
-		o.SamlSettings.LoginButtonText = new(string)
-		*o.SamlSettings.LoginButtonText = USER_AUTH_SERVICE_SAML_TEXT
-	}
-
-	if o.SamlSettings.FirstNameAttribute == nil {
-		o.SamlSettings.FirstNameAttribute = new(string)
-		*o.SamlSettings.FirstNameAttribute = SAML_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE
-	}
-
-	if o.SamlSettings.LastNameAttribute == nil {
-		o.SamlSettings.LastNameAttribute = new(string)
-		*o.SamlSettings.LastNameAttribute = SAML_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE
-	}
-
-	if o.SamlSettings.EmailAttribute == nil {
-		o.SamlSettings.EmailAttribute = new(string)
-		*o.SamlSettings.EmailAttribute = SAML_SETTINGS_DEFAULT_EMAIL_ATTRIBUTE
-	}
-
-	if o.SamlSettings.UsernameAttribute == nil {
-		o.SamlSettings.UsernameAttribute = new(string)
-		*o.SamlSettings.UsernameAttribute = SAML_SETTINGS_DEFAULT_USERNAME_ATTRIBUTE
-	}
-
-	if o.SamlSettings.NicknameAttribute == nil {
-		o.SamlSettings.NicknameAttribute = new(string)
-		*o.SamlSettings.NicknameAttribute = SAML_SETTINGS_DEFAULT_NICKNAME_ATTRIBUTE
-	}
-
-	if o.SamlSettings.PositionAttribute == nil {
-		o.SamlSettings.PositionAttribute = new(string)
-		*o.SamlSettings.PositionAttribute = SAML_SETTINGS_DEFAULT_POSITION_ATTRIBUTE
-	}
-
-	if o.SamlSettings.LocaleAttribute == nil {
-		o.SamlSettings.LocaleAttribute = new(string)
-		*o.SamlSettings.LocaleAttribute = SAML_SETTINGS_DEFAULT_LOCALE_ATTRIBUTE
-	}
-
-	if o.NativeAppSettings.AppDownloadLink == nil {
-		o.NativeAppSettings.AppDownloadLink = new(string)
-		*o.NativeAppSettings.AppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_APP_DOWNLOAD_LINK
-	}
-
-	if o.NativeAppSettings.AndroidAppDownloadLink == nil {
-		o.NativeAppSettings.AndroidAppDownloadLink = new(string)
-		*o.NativeAppSettings.AndroidAppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_ANDROID_APP_DOWNLOAD_LINK
-	}
-
-	if o.NativeAppSettings.IosAppDownloadLink == nil {
-		o.NativeAppSettings.IosAppDownloadLink = new(string)
-		*o.NativeAppSettings.IosAppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_IOS_APP_DOWNLOAD_LINK
-	}
-
-	if o.RateLimitSettings.Enable == nil {
-		o.RateLimitSettings.Enable = new(bool)
-		*o.RateLimitSettings.Enable = false
-	}
-
-	if o.RateLimitSettings.MaxBurst == nil {
-		o.RateLimitSettings.MaxBurst = new(int)
-		*o.RateLimitSettings.MaxBurst = 100
-	}
-
-	if o.ServiceSettings.ConnectionSecurity == nil {
-		o.ServiceSettings.ConnectionSecurity = new(string)
-		*o.ServiceSettings.ConnectionSecurity = ""
-	}
-
-	if o.ServiceSettings.TLSKeyFile == nil {
-		o.ServiceSettings.TLSKeyFile = new(string)
-		*o.ServiceSettings.TLSKeyFile = SERVICE_SETTINGS_DEFAULT_TLS_KEY_FILE
-	}
-
-	if o.ServiceSettings.TLSCertFile == nil {
-		o.ServiceSettings.TLSCertFile = new(string)
-		*o.ServiceSettings.TLSCertFile = SERVICE_SETTINGS_DEFAULT_TLS_CERT_FILE
-	}
-
-	if o.ServiceSettings.UseLetsEncrypt == nil {
-		o.ServiceSettings.UseLetsEncrypt = new(bool)
-		*o.ServiceSettings.UseLetsEncrypt = false
-	}
-
-	if o.ServiceSettings.LetsEncryptCertificateCacheFile == nil {
-		o.ServiceSettings.LetsEncryptCertificateCacheFile = new(string)
-		*o.ServiceSettings.LetsEncryptCertificateCacheFile = "./config/letsencrypt.cache"
-	}
-
-	if o.ServiceSettings.ReadTimeout == nil {
-		o.ServiceSettings.ReadTimeout = new(int)
-		*o.ServiceSettings.ReadTimeout = SERVICE_SETTINGS_DEFAULT_READ_TIMEOUT
-	}
-
-	if o.ServiceSettings.WriteTimeout == nil {
-		o.ServiceSettings.WriteTimeout = new(int)
-		*o.ServiceSettings.WriteTimeout = SERVICE_SETTINGS_DEFAULT_WRITE_TIMEOUT
-	}
-
-	if o.ServiceSettings.Forward80To443 == nil {
-		o.ServiceSettings.Forward80To443 = new(bool)
-		*o.ServiceSettings.Forward80To443 = false
-	}
-
-	if o.MetricsSettings.BlockProfileRate == nil {
-		o.MetricsSettings.BlockProfileRate = new(int)
-		*o.MetricsSettings.BlockProfileRate = 0
-	}
-
-	if o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds == nil {
-		o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds = new(int64)
-		*o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds = 5000
-	}
-
-	if o.ServiceSettings.EnableUserTypingMessages == nil {
-		o.ServiceSettings.EnableUserTypingMessages = new(bool)
-		*o.ServiceSettings.EnableUserTypingMessages = true
-	}
-
-	if o.ServiceSettings.ClusterLogTimeoutMilliseconds == nil {
-		o.ServiceSettings.ClusterLogTimeoutMilliseconds = new(int)
-		*o.ServiceSettings.ClusterLogTimeoutMilliseconds = 2000
-	}
-
+	o.defaultAnalyticsSettings()
+	o.defaultClusterSettings()
+	o.defaultComplianceSettings()
+	o.defaultEmailSettings()
+	o.defaultFileSettings()
+	o.defaultLdapSettings()
+	o.defaultLocalizationSettings()
+	o.defaultLogSettings()
+	o.defaultMetricsSettings()
+	o.defaultNativeAppSettings()
+	o.defaultPasswordSettings()
+	o.defaultRateLimitSettings()
+	o.defaultSamlSettings()
+	o.defaultServiceSettings()
+	o.defaultSupportSettings()
+	o.defaultTeamSettings()
 	o.defaultWebrtcSettings()
 }
 
@@ -1302,46 +629,8 @@ func (o *Config) IsValid() *AppError {
 		}
 	}
 
-	if *o.SamlSettings.Enable {
-		if len(*o.SamlSettings.IdpUrl) == 0 || !IsValidHttpUrl(*o.SamlSettings.IdpUrl) {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_idp_url.app_error", nil, "")
-		}
-
-		if len(*o.SamlSettings.IdpDescriptorUrl) == 0 || !IsValidHttpUrl(*o.SamlSettings.IdpDescriptorUrl) {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_idp_descriptor_url.app_error", nil, "")
-		}
-
-		if len(*o.SamlSettings.IdpCertificateFile) == 0 {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_idp_cert.app_error", nil, "")
-		}
-
-		if len(*o.SamlSettings.EmailAttribute) == 0 {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_email_attribute.app_error", nil, "")
-		}
-
-		if len(*o.SamlSettings.UsernameAttribute) == 0 {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_username_attribute.app_error", nil, "")
-		}
-
-		if *o.SamlSettings.Verify {
-			if len(*o.SamlSettings.AssertionConsumerServiceURL) == 0 || !IsValidHttpUrl(*o.SamlSettings.AssertionConsumerServiceURL) {
-				return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_assertion_consumer_service_url.app_error", nil, "")
-			}
-		}
-
-		if *o.SamlSettings.Encrypt {
-			if len(*o.SamlSettings.PrivateKeyFile) == 0 {
-				return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_private_key.app_error", nil, "")
-			}
-
-			if len(*o.SamlSettings.PublicCertificateFile) == 0 {
-				return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_public_cert.app_error", nil, "")
-			}
-		}
-
-		if len(*o.SamlSettings.EmailAttribute) == 0 {
-			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_email_attribute.app_error", nil, "")
-		}
+	if samlErr := o.isValidSamlSettings(); samlErr != nil {
+		return samlErr
 	}
 
 	if *o.PasswordSettings.MinimumLength < PASSWORD_MINIMUM_LENGTH || *o.PasswordSettings.MinimumLength > PASSWORD_MAXIMUM_LENGTH {
@@ -1415,6 +704,711 @@ func (o *Config) Sanitize() {
 	}
 }
 
+func (o *Config) defaultAnalyticsSettings() {
+	if o.AnalyticsSettings.MaxUsersForStatistics == nil {
+		o.AnalyticsSettings.MaxUsersForStatistics = new(int)
+		*o.AnalyticsSettings.MaxUsersForStatistics = ANALYTICS_SETTINGS_DEFAULT_MAX_USERS_FOR_STATISTICS
+	}
+}
+
+func (o *Config) defaultComplianceSettings() {
+	if o.ComplianceSettings.Enable == nil {
+		o.ComplianceSettings.Enable = new(bool)
+		*o.ComplianceSettings.Enable = false
+	}
+
+	if o.ComplianceSettings.Directory == nil {
+		o.ComplianceSettings.Directory = new(string)
+		*o.ComplianceSettings.Directory = "./data/"
+	}
+
+	if o.ComplianceSettings.EnableDaily == nil {
+		o.ComplianceSettings.EnableDaily = new(bool)
+		*o.ComplianceSettings.EnableDaily = false
+	}
+}
+
+func (o *Config) defaultClusterSettings() {
+	if o.ClusterSettings.InterNodeListenAddress == nil {
+		o.ClusterSettings.InterNodeListenAddress = new(string)
+		*o.ClusterSettings.InterNodeListenAddress = ":8075"
+	}
+
+	if o.ClusterSettings.Enable == nil {
+		o.ClusterSettings.Enable = new(bool)
+		*o.ClusterSettings.Enable = false
+	}
+
+	if o.ClusterSettings.InterNodeUrls == nil {
+		o.ClusterSettings.InterNodeUrls = []string{}
+	}
+}
+
+func (o *Config) defaultEmailSettings() {
+	if len(o.EmailSettings.InviteSalt) == 0 {
+		o.EmailSettings.InviteSalt = NewRandomString(32)
+	}
+
+	if len(o.EmailSettings.PasswordResetSalt) == 0 {
+		o.EmailSettings.PasswordResetSalt = NewRandomString(32)
+	}
+
+	if o.EmailSettings.EnableSignInWithEmail == nil {
+		o.EmailSettings.EnableSignInWithEmail = new(bool)
+
+		if o.EmailSettings.EnableSignUpWithEmail == true {
+			*o.EmailSettings.EnableSignInWithEmail = true
+		} else {
+			*o.EmailSettings.EnableSignInWithEmail = false
+		}
+	}
+
+	if o.EmailSettings.EnableSignInWithUsername == nil {
+		o.EmailSettings.EnableSignInWithUsername = new(bool)
+		*o.EmailSettings.EnableSignInWithUsername = false
+	}
+
+	if o.EmailSettings.SendPushNotifications == nil {
+		o.EmailSettings.SendPushNotifications = new(bool)
+		*o.EmailSettings.SendPushNotifications = false
+	}
+
+	if o.EmailSettings.PushNotificationServer == nil {
+		o.EmailSettings.PushNotificationServer = new(string)
+		*o.EmailSettings.PushNotificationServer = ""
+	}
+
+	if o.EmailSettings.PushNotificationContents == nil {
+		o.EmailSettings.PushNotificationContents = new(string)
+		*o.EmailSettings.PushNotificationContents = GENERIC_NOTIFICATION
+	}
+
+	if o.EmailSettings.FeedbackOrganization == nil {
+		o.EmailSettings.FeedbackOrganization = new(string)
+		*o.EmailSettings.FeedbackOrganization = EMAIL_SETTINGS_DEFAULT_FEEDBACK_ORGANIZATION
+	}
+
+	if o.EmailSettings.EnableEmailBatching == nil {
+		o.EmailSettings.EnableEmailBatching = new(bool)
+		*o.EmailSettings.EnableEmailBatching = false
+	}
+
+	if o.EmailSettings.EmailBatchingBufferSize == nil {
+		o.EmailSettings.EmailBatchingBufferSize = new(int)
+		*o.EmailSettings.EmailBatchingBufferSize = EMAIL_BATCHING_BUFFER_SIZE
+	}
+
+	if o.EmailSettings.EmailBatchingInterval == nil {
+		o.EmailSettings.EmailBatchingInterval = new(int)
+		*o.EmailSettings.EmailBatchingInterval = EMAIL_BATCHING_INTERVAL
+	}
+}
+
+func (o *Config) defaultFileSettings() {
+	if o.FileSettings.AmazonS3Endpoint == "" {
+		// Defaults to "s3.amazonaws.com"
+		o.FileSettings.AmazonS3Endpoint = "s3.amazonaws.com"
+	}
+
+	if o.FileSettings.AmazonS3Region == "" {
+		// Defaults to "us-east-1" region.
+		o.FileSettings.AmazonS3Region = "us-east-1"
+	}
+
+	if o.FileSettings.AmazonS3SSL == nil {
+		o.FileSettings.AmazonS3SSL = new(bool)
+		*o.FileSettings.AmazonS3SSL = true // Secure by default.
+	}
+
+	if o.FileSettings.MaxFileSize == nil {
+		o.FileSettings.MaxFileSize = new(int64)
+		*o.FileSettings.MaxFileSize = 52428800 // 50 MB
+	}
+
+	if len(*o.FileSettings.PublicLinkSalt) == 0 {
+		o.FileSettings.PublicLinkSalt = new(string)
+		*o.FileSettings.PublicLinkSalt = NewRandomString(32)
+	}
+
+	if o.FileSettings.InitialFont == "" {
+		// Defaults to "luximbi.ttf"
+		o.FileSettings.InitialFont = "luximbi.ttf"
+	}
+}
+
+func (o *Config) defaultLdapSettings() {
+	if o.LdapSettings.Enable == nil {
+		o.LdapSettings.Enable = new(bool)
+		*o.LdapSettings.Enable = false
+	}
+
+	if o.LdapSettings.LdapServer == nil {
+		o.LdapSettings.LdapServer = new(string)
+		*o.LdapSettings.LdapServer = ""
+	}
+
+	if o.LdapSettings.LdapPort == nil {
+		o.LdapSettings.LdapPort = new(int)
+		*o.LdapSettings.LdapPort = 389
+	}
+
+	if o.LdapSettings.ConnectionSecurity == nil {
+		o.LdapSettings.ConnectionSecurity = new(string)
+		*o.LdapSettings.ConnectionSecurity = ""
+	}
+
+	if o.LdapSettings.BaseDN == nil {
+		o.LdapSettings.BaseDN = new(string)
+		*o.LdapSettings.BaseDN = ""
+	}
+
+	if o.LdapSettings.BindUsername == nil {
+		o.LdapSettings.BindUsername = new(string)
+		*o.LdapSettings.BindUsername = ""
+	}
+
+	if o.LdapSettings.BindPassword == nil {
+		o.LdapSettings.BindPassword = new(string)
+		*o.LdapSettings.BindPassword = ""
+	}
+
+	if o.LdapSettings.UserFilter == nil {
+		o.LdapSettings.UserFilter = new(string)
+		*o.LdapSettings.UserFilter = ""
+	}
+
+	if o.LdapSettings.FirstNameAttribute == nil {
+		o.LdapSettings.FirstNameAttribute = new(string)
+		*o.LdapSettings.FirstNameAttribute = LDAP_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE
+	}
+
+	if o.LdapSettings.LastNameAttribute == nil {
+		o.LdapSettings.LastNameAttribute = new(string)
+		*o.LdapSettings.LastNameAttribute = LDAP_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE
+	}
+
+	if o.LdapSettings.EmailAttribute == nil {
+		o.LdapSettings.EmailAttribute = new(string)
+		*o.LdapSettings.EmailAttribute = LDAP_SETTINGS_DEFAULT_EMAIL_ATTRIBUTE
+	}
+
+	if o.LdapSettings.UsernameAttribute == nil {
+		o.LdapSettings.UsernameAttribute = new(string)
+		*o.LdapSettings.UsernameAttribute = LDAP_SETTINGS_DEFAULT_USERNAME_ATTRIBUTE
+	}
+
+	if o.LdapSettings.NicknameAttribute == nil {
+		o.LdapSettings.NicknameAttribute = new(string)
+		*o.LdapSettings.NicknameAttribute = LDAP_SETTINGS_DEFAULT_NICKNAME_ATTRIBUTE
+	}
+
+	if o.LdapSettings.IdAttribute == nil {
+		o.LdapSettings.IdAttribute = new(string)
+		*o.LdapSettings.IdAttribute = LDAP_SETTINGS_DEFAULT_ID_ATTRIBUTE
+	}
+
+	if o.LdapSettings.PositionAttribute == nil {
+		o.LdapSettings.PositionAttribute = new(string)
+		*o.LdapSettings.PositionAttribute = LDAP_SETTINGS_DEFAULT_POSITION_ATTRIBUTE
+	}
+
+	if o.LdapSettings.SyncIntervalMinutes == nil {
+		o.LdapSettings.SyncIntervalMinutes = new(int)
+		*o.LdapSettings.SyncIntervalMinutes = 60
+	}
+
+	if o.LdapSettings.SkipCertificateVerification == nil {
+		o.LdapSettings.SkipCertificateVerification = new(bool)
+		*o.LdapSettings.SkipCertificateVerification = false
+	}
+
+	if o.LdapSettings.QueryTimeout == nil {
+		o.LdapSettings.QueryTimeout = new(int)
+		*o.LdapSettings.QueryTimeout = 60
+	}
+
+	if o.LdapSettings.MaxPageSize == nil {
+		o.LdapSettings.MaxPageSize = new(int)
+		*o.LdapSettings.MaxPageSize = 0
+	}
+
+	if o.LdapSettings.LoginFieldName == nil {
+		o.LdapSettings.LoginFieldName = new(string)
+		*o.LdapSettings.LoginFieldName = LDAP_SETTINGS_DEFAULT_LOGIN_FIELD_NAME
+	}
+}
+
+func (o *Config) defaultLocalizationSettings() {
+	if o.LocalizationSettings.DefaultServerLocale == nil {
+		o.LocalizationSettings.DefaultServerLocale = new(string)
+		*o.LocalizationSettings.DefaultServerLocale = DEFAULT_LOCALE
+	}
+
+	if o.LocalizationSettings.DefaultClientLocale == nil {
+		o.LocalizationSettings.DefaultClientLocale = new(string)
+		*o.LocalizationSettings.DefaultClientLocale = DEFAULT_LOCALE
+	}
+
+	if o.LocalizationSettings.AvailableLocales == nil {
+		o.LocalizationSettings.AvailableLocales = new(string)
+		*o.LocalizationSettings.AvailableLocales = ""
+	}
+}
+
+func (o *Config) defaultLogSettings() {
+	if o.LogSettings.EnableDiagnostics == nil {
+		o.LogSettings.EnableDiagnostics = new(bool)
+		*o.LogSettings.EnableDiagnostics = true
+	}
+}
+
+func (o *Config) defaultMetricsSettings() {
+	if o.MetricsSettings.ListenAddress == nil {
+		o.MetricsSettings.ListenAddress = new(string)
+		*o.MetricsSettings.ListenAddress = ":8067"
+	}
+
+	if o.MetricsSettings.Enable == nil {
+		o.MetricsSettings.Enable = new(bool)
+		*o.MetricsSettings.Enable = false
+	}
+
+	if o.MetricsSettings.BlockProfileRate == nil {
+		o.MetricsSettings.BlockProfileRate = new(int)
+		*o.MetricsSettings.BlockProfileRate = 0
+	}
+}
+
+func (o *Config) defaultNativeAppSettings() {
+	if o.NativeAppSettings.AppDownloadLink == nil {
+		o.NativeAppSettings.AppDownloadLink = new(string)
+		*o.NativeAppSettings.AppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_APP_DOWNLOAD_LINK
+	}
+
+	if o.NativeAppSettings.AndroidAppDownloadLink == nil {
+		o.NativeAppSettings.AndroidAppDownloadLink = new(string)
+		*o.NativeAppSettings.AndroidAppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_ANDROID_APP_DOWNLOAD_LINK
+	}
+
+	if o.NativeAppSettings.IosAppDownloadLink == nil {
+		o.NativeAppSettings.IosAppDownloadLink = new(string)
+		*o.NativeAppSettings.IosAppDownloadLink = NATIVEAPP_SETTINGS_DEFAULT_IOS_APP_DOWNLOAD_LINK
+	}
+}
+
+func (o *Config) defaultPasswordSettings() {
+	if o.PasswordSettings.MinimumLength == nil {
+		o.PasswordSettings.MinimumLength = new(int)
+		*o.PasswordSettings.MinimumLength = PASSWORD_MINIMUM_LENGTH
+	}
+
+	if o.PasswordSettings.Lowercase == nil {
+		o.PasswordSettings.Lowercase = new(bool)
+		*o.PasswordSettings.Lowercase = false
+	}
+
+	if o.PasswordSettings.Number == nil {
+		o.PasswordSettings.Number = new(bool)
+		*o.PasswordSettings.Number = false
+	}
+
+	if o.PasswordSettings.Uppercase == nil {
+		o.PasswordSettings.Uppercase = new(bool)
+		*o.PasswordSettings.Uppercase = false
+	}
+
+	if o.PasswordSettings.Symbol == nil {
+		o.PasswordSettings.Symbol = new(bool)
+		*o.PasswordSettings.Symbol = false
+	}
+}
+
+func (o *Config) defaultRateLimitSettings() {
+	if o.RateLimitSettings.Enable == nil {
+		o.RateLimitSettings.Enable = new(bool)
+		*o.RateLimitSettings.Enable = false
+	}
+
+	if o.RateLimitSettings.MaxBurst == nil {
+		o.RateLimitSettings.MaxBurst = new(int)
+		*o.RateLimitSettings.MaxBurst = 100
+	}
+}
+
+func (o Config) defaultSamlSettings() {
+	if o.SamlSettings.Enable == nil {
+		o.SamlSettings.Enable = new(bool)
+		*o.SamlSettings.Enable = false
+	}
+
+	if o.SamlSettings.Verify == nil {
+		o.SamlSettings.Verify = new(bool)
+		*o.SamlSettings.Verify = false
+	}
+
+	if o.SamlSettings.Encrypt == nil {
+		o.SamlSettings.Encrypt = new(bool)
+		*o.SamlSettings.Encrypt = false
+	}
+
+	if o.SamlSettings.IdpUrl == nil {
+		o.SamlSettings.IdpUrl = new(string)
+		*o.SamlSettings.IdpUrl = ""
+	}
+
+	if o.SamlSettings.IdpDescriptorUrl == nil {
+		o.SamlSettings.IdpDescriptorUrl = new(string)
+		*o.SamlSettings.IdpDescriptorUrl = ""
+	}
+
+	if o.SamlSettings.AssertionConsumerServiceURL == nil {
+		o.SamlSettings.AssertionConsumerServiceURL = new(string)
+		*o.SamlSettings.AssertionConsumerServiceURL = ""
+	}
+
+	if o.SamlSettings.LoginButtonText == nil || *o.SamlSettings.LoginButtonText == "" {
+		o.SamlSettings.LoginButtonText = new(string)
+		*o.SamlSettings.LoginButtonText = USER_AUTH_SERVICE_SAML_TEXT
+	}
+
+	if o.SamlSettings.FirstNameAttribute == nil {
+		o.SamlSettings.FirstNameAttribute = new(string)
+		*o.SamlSettings.FirstNameAttribute = SAML_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE
+	}
+
+	if o.SamlSettings.LastNameAttribute == nil {
+		o.SamlSettings.LastNameAttribute = new(string)
+		*o.SamlSettings.LastNameAttribute = SAML_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE
+	}
+
+	if o.SamlSettings.EmailAttribute == nil {
+		o.SamlSettings.EmailAttribute = new(string)
+		*o.SamlSettings.EmailAttribute = SAML_SETTINGS_DEFAULT_EMAIL_ATTRIBUTE
+	}
+
+	if o.SamlSettings.UsernameAttribute == nil {
+		o.SamlSettings.UsernameAttribute = new(string)
+		*o.SamlSettings.UsernameAttribute = SAML_SETTINGS_DEFAULT_USERNAME_ATTRIBUTE
+	}
+
+	if o.SamlSettings.NicknameAttribute == nil {
+		o.SamlSettings.NicknameAttribute = new(string)
+		*o.SamlSettings.NicknameAttribute = SAML_SETTINGS_DEFAULT_NICKNAME_ATTRIBUTE
+	}
+
+	if o.SamlSettings.PositionAttribute == nil {
+		o.SamlSettings.PositionAttribute = new(string)
+		*o.SamlSettings.PositionAttribute = SAML_SETTINGS_DEFAULT_POSITION_ATTRIBUTE
+	}
+
+	if o.SamlSettings.LocaleAttribute == nil {
+		o.SamlSettings.LocaleAttribute = new(string)
+		*o.SamlSettings.LocaleAttribute = SAML_SETTINGS_DEFAULT_LOCALE_ATTRIBUTE
+	}
+}
+
+func (o *Config) defaultServiceSettings() {
+	if o.ServiceSettings.SiteURL == nil {
+		o.ServiceSettings.SiteURL = new(string)
+		*o.ServiceSettings.SiteURL = SERVICE_SETTINGS_DEFAULT_SITE_URL
+	}
+
+	if o.ServiceSettings.EnableLinkPreviews == nil {
+		o.ServiceSettings.EnableLinkPreviews = new(bool)
+		*o.ServiceSettings.EnableLinkPreviews = false
+	}
+
+	if o.ServiceSettings.EnableDeveloper == nil {
+		o.ServiceSettings.EnableDeveloper = new(bool)
+		*o.ServiceSettings.EnableDeveloper = false
+	}
+
+	if o.ServiceSettings.EnableSecurityFixAlert == nil {
+		o.ServiceSettings.EnableSecurityFixAlert = new(bool)
+		*o.ServiceSettings.EnableSecurityFixAlert = true
+	}
+
+	if o.ServiceSettings.EnableInsecureOutgoingConnections == nil {
+		o.ServiceSettings.EnableInsecureOutgoingConnections = new(bool)
+		*o.ServiceSettings.EnableInsecureOutgoingConnections = false
+	}
+
+	if o.ServiceSettings.EnableMultifactorAuthentication == nil {
+		o.ServiceSettings.EnableMultifactorAuthentication = new(bool)
+		*o.ServiceSettings.EnableMultifactorAuthentication = false
+	}
+
+	if o.ServiceSettings.EnforceMultifactorAuthentication == nil {
+		o.ServiceSettings.EnforceMultifactorAuthentication = new(bool)
+		*o.ServiceSettings.EnforceMultifactorAuthentication = false
+	}
+
+	if o.ServiceSettings.ConnectionSecurity == nil {
+		o.ServiceSettings.ConnectionSecurity = new(string)
+		*o.ServiceSettings.ConnectionSecurity = ""
+	}
+
+	if o.ServiceSettings.TLSKeyFile == nil {
+		o.ServiceSettings.TLSKeyFile = new(string)
+		*o.ServiceSettings.TLSKeyFile = SERVICE_SETTINGS_DEFAULT_TLS_KEY_FILE
+	}
+
+	if o.ServiceSettings.TLSCertFile == nil {
+		o.ServiceSettings.TLSCertFile = new(string)
+		*o.ServiceSettings.TLSCertFile = SERVICE_SETTINGS_DEFAULT_TLS_CERT_FILE
+	}
+
+	if o.ServiceSettings.UseLetsEncrypt == nil {
+		o.ServiceSettings.UseLetsEncrypt = new(bool)
+		*o.ServiceSettings.UseLetsEncrypt = false
+	}
+
+	if o.ServiceSettings.LetsEncryptCertificateCacheFile == nil {
+		o.ServiceSettings.LetsEncryptCertificateCacheFile = new(string)
+		*o.ServiceSettings.LetsEncryptCertificateCacheFile = "./config/letsencrypt.cache"
+	}
+
+	if o.ServiceSettings.ReadTimeout == nil {
+		o.ServiceSettings.ReadTimeout = new(int)
+		*o.ServiceSettings.ReadTimeout = SERVICE_SETTINGS_DEFAULT_READ_TIMEOUT
+	}
+
+	if o.ServiceSettings.WriteTimeout == nil {
+		o.ServiceSettings.WriteTimeout = new(int)
+		*o.ServiceSettings.WriteTimeout = SERVICE_SETTINGS_DEFAULT_WRITE_TIMEOUT
+	}
+
+	if o.ServiceSettings.Forward80To443 == nil {
+		o.ServiceSettings.Forward80To443 = new(bool)
+		*o.ServiceSettings.Forward80To443 = false
+	}
+
+	if o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds == nil {
+		o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds = new(int64)
+		*o.ServiceSettings.TimeBetweenUserTypingUpdatesMilliseconds = 5000
+	}
+
+	if o.ServiceSettings.EnableUserTypingMessages == nil {
+		o.ServiceSettings.EnableUserTypingMessages = new(bool)
+		*o.ServiceSettings.EnableUserTypingMessages = true
+	}
+
+	if o.ServiceSettings.ClusterLogTimeoutMilliseconds == nil {
+		o.ServiceSettings.ClusterLogTimeoutMilliseconds = new(int)
+		*o.ServiceSettings.ClusterLogTimeoutMilliseconds = 2000
+	}
+
+	if o.ServiceSettings.SessionLengthWebInDays == nil {
+		o.ServiceSettings.SessionLengthWebInDays = new(int)
+		*o.ServiceSettings.SessionLengthWebInDays = 30
+	}
+
+	if o.ServiceSettings.SessionLengthMobileInDays == nil {
+		o.ServiceSettings.SessionLengthMobileInDays = new(int)
+		*o.ServiceSettings.SessionLengthMobileInDays = 30
+	}
+
+	if o.ServiceSettings.SessionLengthSSOInDays == nil {
+		o.ServiceSettings.SessionLengthSSOInDays = new(int)
+		*o.ServiceSettings.SessionLengthSSOInDays = 30
+	}
+
+	if o.ServiceSettings.SessionCacheInMinutes == nil {
+		o.ServiceSettings.SessionCacheInMinutes = new(int)
+		*o.ServiceSettings.SessionCacheInMinutes = 10
+	}
+
+	if o.ServiceSettings.EnableCommands == nil {
+		o.ServiceSettings.EnableCommands = new(bool)
+		*o.ServiceSettings.EnableCommands = false
+	}
+
+	if o.ServiceSettings.EnableOnlyAdminIntegrations == nil {
+		o.ServiceSettings.EnableOnlyAdminIntegrations = new(bool)
+		*o.ServiceSettings.EnableOnlyAdminIntegrations = true
+	}
+
+	if o.ServiceSettings.WebsocketPort == nil {
+		o.ServiceSettings.WebsocketPort = new(int)
+		*o.ServiceSettings.WebsocketPort = 80
+	}
+
+	if o.ServiceSettings.WebsocketSecurePort == nil {
+		o.ServiceSettings.WebsocketSecurePort = new(int)
+		*o.ServiceSettings.WebsocketSecurePort = 443
+	}
+
+	if o.ServiceSettings.AllowCorsFrom == nil {
+		o.ServiceSettings.AllowCorsFrom = new(string)
+		*o.ServiceSettings.AllowCorsFrom = SERVICE_SETTINGS_DEFAULT_ALLOW_CORS_FROM
+	}
+
+	if o.ServiceSettings.WebserverMode == nil {
+		o.ServiceSettings.WebserverMode = new(string)
+		*o.ServiceSettings.WebserverMode = "gzip"
+	} else if *o.ServiceSettings.WebserverMode == "regular" {
+		*o.ServiceSettings.WebserverMode = "gzip"
+	}
+
+	if o.ServiceSettings.EnableCustomEmoji == nil {
+		o.ServiceSettings.EnableCustomEmoji = new(bool)
+		*o.ServiceSettings.EnableCustomEmoji = true
+	}
+
+	if o.ServiceSettings.RestrictCustomEmojiCreation == nil {
+		o.ServiceSettings.RestrictCustomEmojiCreation = new(string)
+		*o.ServiceSettings.RestrictCustomEmojiCreation = RESTRICT_EMOJI_CREATION_ALL
+	}
+
+	if o.ServiceSettings.RestrictPostDelete == nil {
+		o.ServiceSettings.RestrictPostDelete = new(string)
+		*o.ServiceSettings.RestrictPostDelete = PERMISSIONS_DELETE_POST_ALL
+	}
+
+	if o.ServiceSettings.AllowEditPost == nil {
+		o.ServiceSettings.AllowEditPost = new(string)
+		*o.ServiceSettings.AllowEditPost = ALLOW_EDIT_POST_ALWAYS
+	}
+
+	if o.ServiceSettings.PostEditTimeLimit == nil {
+		o.ServiceSettings.PostEditTimeLimit = new(int)
+		*o.ServiceSettings.PostEditTimeLimit = 300
+	}
+}
+
+func (o *Config) defaultSupportSettings() {
+	if !IsSafeLink(o.SupportSettings.TermsOfServiceLink) {
+		o.SupportSettings.TermsOfServiceLink = nil
+	}
+
+	if o.SupportSettings.TermsOfServiceLink == nil {
+		o.SupportSettings.TermsOfServiceLink = new(string)
+		*o.SupportSettings.TermsOfServiceLink = SUPPORT_SETTINGS_DEFAULT_TERMS_OF_SERVICE_LINK
+	}
+
+	if !IsSafeLink(o.SupportSettings.PrivacyPolicyLink) {
+		o.SupportSettings.PrivacyPolicyLink = nil
+	}
+
+	if o.SupportSettings.PrivacyPolicyLink == nil {
+		o.SupportSettings.PrivacyPolicyLink = new(string)
+		*o.SupportSettings.PrivacyPolicyLink = SUPPORT_SETTINGS_DEFAULT_PRIVACY_POLICY_LINK
+	}
+
+	if !IsSafeLink(o.SupportSettings.AboutLink) {
+		o.SupportSettings.AboutLink = nil
+	}
+
+	if o.SupportSettings.AboutLink == nil {
+		o.SupportSettings.AboutLink = new(string)
+		*o.SupportSettings.AboutLink = SUPPORT_SETTINGS_DEFAULT_ABOUT_LINK
+	}
+
+	if !IsSafeLink(o.SupportSettings.HelpLink) {
+		o.SupportSettings.HelpLink = nil
+	}
+
+	if o.SupportSettings.HelpLink == nil {
+		o.SupportSettings.HelpLink = new(string)
+		*o.SupportSettings.HelpLink = SUPPORT_SETTINGS_DEFAULT_HELP_LINK
+	}
+
+	if !IsSafeLink(o.SupportSettings.ReportAProblemLink) {
+		o.SupportSettings.ReportAProblemLink = nil
+	}
+
+	if o.SupportSettings.ReportAProblemLink == nil {
+		o.SupportSettings.ReportAProblemLink = new(string)
+		*o.SupportSettings.ReportAProblemLink = SUPPORT_SETTINGS_DEFAULT_REPORT_A_PROBLEM_LINK
+	}
+
+	if o.SupportSettings.SupportEmail == nil {
+		o.SupportSettings.SupportEmail = new(string)
+		*o.SupportSettings.SupportEmail = SUPPORT_SETTINGS_DEFAULT_SUPPORT_EMAIL
+	}
+}
+
+func (o *Config) defaultTeamSettings() {
+	if o.TeamSettings.EnableCustomBrand == nil {
+		o.TeamSettings.EnableCustomBrand = new(bool)
+		*o.TeamSettings.EnableCustomBrand = false
+	}
+
+	if o.TeamSettings.CustomBrandText == nil {
+		o.TeamSettings.CustomBrandText = new(string)
+		*o.TeamSettings.CustomBrandText = TEAM_SETTINGS_DEFAULT_CUSTOM_BRAND_TEXT
+	}
+
+	if o.TeamSettings.CustomDescriptionText == nil {
+		o.TeamSettings.CustomDescriptionText = new(string)
+		*o.TeamSettings.CustomDescriptionText = TEAM_SETTINGS_DEFAULT_CUSTOM_DESCRIPTION_TEXT
+	}
+
+	if o.TeamSettings.EnableOpenServer == nil {
+		o.TeamSettings.EnableOpenServer = new(bool)
+		*o.TeamSettings.EnableOpenServer = false
+	}
+
+	if o.TeamSettings.RestrictDirectMessage == nil {
+		o.TeamSettings.RestrictDirectMessage = new(string)
+		*o.TeamSettings.RestrictDirectMessage = DIRECT_MESSAGE_ANY
+	}
+
+	if o.TeamSettings.RestrictTeamInvite == nil {
+		o.TeamSettings.RestrictTeamInvite = new(string)
+		*o.TeamSettings.RestrictTeamInvite = PERMISSIONS_ALL
+	}
+
+	if o.TeamSettings.RestrictPublicChannelManagement == nil {
+		o.TeamSettings.RestrictPublicChannelManagement = new(string)
+		*o.TeamSettings.RestrictPublicChannelManagement = PERMISSIONS_ALL
+	}
+
+	if o.TeamSettings.RestrictPrivateChannelManagement == nil {
+		o.TeamSettings.RestrictPrivateChannelManagement = new(string)
+		*o.TeamSettings.RestrictPrivateChannelManagement = PERMISSIONS_ALL
+	}
+
+	if o.TeamSettings.RestrictPublicChannelCreation == nil {
+		o.TeamSettings.RestrictPublicChannelCreation = new(string)
+		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
+		*o.TeamSettings.RestrictPublicChannelCreation = *o.TeamSettings.RestrictPublicChannelManagement
+	}
+
+	if o.TeamSettings.RestrictPrivateChannelCreation == nil {
+		o.TeamSettings.RestrictPrivateChannelCreation = new(string)
+		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
+		*o.TeamSettings.RestrictPrivateChannelCreation = *o.TeamSettings.RestrictPrivateChannelManagement
+	}
+
+	if o.TeamSettings.RestrictPublicChannelDeletion == nil {
+		o.TeamSettings.RestrictPublicChannelDeletion = new(string)
+		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
+		*o.TeamSettings.RestrictPublicChannelDeletion = *o.TeamSettings.RestrictPublicChannelManagement
+	}
+
+	if o.TeamSettings.RestrictPrivateChannelDeletion == nil {
+		o.TeamSettings.RestrictPrivateChannelDeletion = new(string)
+		// If this setting does not exist, assume migration from <3.6, so use management setting as default.
+		*o.TeamSettings.RestrictPrivateChannelDeletion = *o.TeamSettings.RestrictPrivateChannelManagement
+	}
+
+	if o.TeamSettings.UserStatusAwayTimeout == nil {
+		o.TeamSettings.UserStatusAwayTimeout = new(int64)
+		*o.TeamSettings.UserStatusAwayTimeout = TEAM_SETTINGS_DEFAULT_USER_STATUS_AWAY_TIMEOUT
+	}
+
+	if o.TeamSettings.MaxChannelsPerTeam == nil {
+		o.TeamSettings.MaxChannelsPerTeam = new(int64)
+		*o.TeamSettings.MaxChannelsPerTeam = 2000
+	}
+
+	if o.TeamSettings.MaxNotificationsPerChannel == nil {
+		o.TeamSettings.MaxNotificationsPerChannel = new(int64)
+		*o.TeamSettings.MaxNotificationsPerChannel = 1000
+	}
+}
+
 func (o *Config) defaultWebrtcSettings() {
 	if o.WebrtcSettings.Enable == nil {
 		o.WebrtcSettings.Enable = new(bool)
@@ -1455,6 +1449,38 @@ func (o *Config) defaultWebrtcSettings() {
 		o.WebrtcSettings.TurnSharedKey = new(string)
 		*o.WebrtcSettings.TurnSharedKey = ""
 	}
+}
+
+func (o *Config) isValidSamlSettings() *AppError {
+	if *o.SamlSettings.Enable {
+		if len(*o.SamlSettings.IdpUrl) == 0 || !IsValidHttpUrl(*o.SamlSettings.IdpUrl) {
+			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_idp_url.app_error", nil, "")
+		}
+
+		if len(*o.SamlSettings.IdpDescriptorUrl) == 0 || !IsValidHttpUrl(*o.SamlSettings.IdpDescriptorUrl) {
+			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_idp_descriptor_url.app_error", nil, "")
+		}
+
+		if len(*o.SamlSettings.EmailAttribute) == 0 {
+			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_email_attribute.app_error", nil, "")
+		}
+
+		if len(*o.SamlSettings.UsernameAttribute) == 0 {
+			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_username_attribute.app_error", nil, "")
+		}
+
+		if *o.SamlSettings.Verify {
+			if len(*o.SamlSettings.AssertionConsumerServiceURL) == 0 || !IsValidHttpUrl(*o.SamlSettings.AssertionConsumerServiceURL) {
+				return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_assertion_consumer_service_url.app_error", nil, "")
+			}
+		}
+
+		if len(*o.SamlSettings.EmailAttribute) == 0 {
+			return NewLocAppError("Config.IsValid", "model.config.is_valid.saml_email_attribute.app_error", nil, "")
+		}
+	}
+
+	return nil
 }
 
 func (o *Config) isValidWebrtcSettings() *AppError {

@@ -371,8 +371,9 @@ export function removeLicenseFile(success, error) {
     );
 }
 
-export function uploadCertificateFile(certificateFile, success, error) {
+export function uploadCertificateFile(type, certificateFile, success, error) {
     Client.uploadCertificateFile(
+        type,
         certificateFile,
         () => {
             if (success) {
@@ -387,9 +388,9 @@ export function uploadCertificateFile(certificateFile, success, error) {
     );
 }
 
-export function removeCertificateFile(certificateId, success, error) {
+export function removeCertificateFile(type, success, error) {
     Client.removeCertificateFile(
-        certificateId,
+        type,
         () => {
             if (success) {
                 success();
